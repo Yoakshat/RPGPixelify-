@@ -2,3 +2,4 @@
 *.pt
 *.pth
 *.npy
+output_sprites/

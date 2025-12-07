@@ -25,11 +25,14 @@ def segment_images_in_folder(input_folder, output_folder):
     fnames = os.listdir(input_folder)
     for i in tqdm(range(len(fnames))):
         filename = os.path.join(input_folder, fnames[i])
-        masks = segment_image(filename, mask_generator)
-
-        # save masks with same filename but .npy extension
         base_name = os.path.splitext(fnames[i])[0]
+         # save masks with same filename but .npy extension
         save_path = os.path.join(output_folder, base_name + ".npy")
+
+        # already generated masks
+        if os.path.exists(save_path): 
+            continue
+        masks = segment_image(filename, mask_generator)
         np.save(save_path, masks)
 
 if __name__ == "__main__":
