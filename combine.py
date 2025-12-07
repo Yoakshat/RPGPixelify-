@@ -125,13 +125,6 @@ if __name__ == "__main__":
             cv2.imwrite(os.path.join(sprite_folder, f"sprite_{i}.png"), sprite)
 
     cv2.imwrite("pixelated_" + image_name, v1)
-    
-
-
-    #v2 = reduce(image_name, px_method=px_method, pixel_size=8, red_method=red_method, dither=dither, num_colors=16, per_sprite=False)
-
-    #cv2.imwrite("v1.png", v1)
-    #cv2.imwrite("v2.png", v2)
 
 
 
