@@ -1,3 +1,4 @@
 # Ignore big model files
 *.pt
 *.pth
+*.npy
