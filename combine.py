@@ -14,8 +14,6 @@ def magical_pixelize(image_name, method, pixel_size):
 
     # get the original image
     image = cv2.imread("test_images/" + image_name)
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
     out_pixelated = np.zeros_like(image)
 
     for ann in masks:
@@ -42,8 +40,6 @@ def magical_pixelize(image_name, method, pixel_size):
 # (for consistent theme)
 def reduce_entire_image(image_name, px_method, pixel_size, red_method, dither, num_colors): 
     pix = magical_pixelize(image_name, method=px_method, pixel_size=pixel_size)
-    # convert back to BGR for reduce_colors
-    pix = cv2.cvtColor(pix, cv2.COLOR_RGB2BGR)
     reduced = reduce_colors(pix, method=red_method, dither=dither, k=num_colors)
 
     # get the reduced sprites (e.g. go back to masks)
@@ -70,9 +66,7 @@ def reduce_sprites(image_name, px_method, pixel_size, red_method, dither, num_co
     masks = np.load(mask_path, allow_pickle=True)
 
     # get the original image
-    image = cv2.imread("test_images/" + image_name)
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
+    image = cv2.imread("test_images/" + image_name)  # already BGR
     out_pixelated = np.zeros_like(image)
     reduced_sprites = [] 
 
@@ -80,21 +74,23 @@ def reduce_sprites(image_name, px_method, pixel_size, red_method, dither, num_co
         mask = ann["segmentation"]
         x, y, w, h = ann["bbox"]
 
-        obj_crop = image[y:y+h, x:x+w]
+        obj_crop = image[y:y+h, x:x+w]  # still BGR
         mask_crop = mask[y:y+h, x:x+w]
 
         isolated = np.zeros((h, w, 4), dtype=np.uint8)
         isolated[..., :3] = obj_crop
         isolated[..., 3] = mask_crop.astype(np.uint8) * 255
 
-        px = pixelate(isolated, method=px_method, pixel_size=pixel_size)
-        px = cv2.cvtColor(px, cv2.COLOR_RGB2BGR)
-        px = reduce_colors(px, method=red_method, dither=dither, k=num_colors)
         alpha = mask_crop.astype(bool)
+        # pixelate first, then reduce colors
+        px = pixelate(isolated, method=px_method, pixel_size=pixel_size)
+        px_bgr = reduce_colors(px[..., :3], method=red_method, dither=dither, k=num_colors)
 
-        out_pixelated[y:y+h, x:x+w][alpha]  = px[alpha][:, :3]
-        red_sprite = np.zeros((h,w,3))
-        red_sprite[alpha] = px[alpha][:, :3]
+        # apply the mask to the output
+        out_pixelated[y:y+h, x:x+w][alpha] = px_bgr[alpha]
+
+        red_sprite = np.zeros((h, w, 3), dtype=np.uint8)
+        red_sprite[alpha] = px_bgr[alpha]
         reduced_sprites.append(red_sprite)
 
     return out_pixelated, reduced_sprites
@@ -108,13 +104,13 @@ def reduce(image_name, px_method="median", pixel_size=8, red_method="kmeans", di
 
 if __name__ == "__main__":
     # do everything and save it so we can see!
-    image_name = "statue.jpg"
+    image_name = "japancity.jpg"
     px_method = "median"
     red_method = "kmeans"
     dither = True
 
     v1, indv_sprites = reduce(image_name, px_method=px_method, pixel_size=8, red_method=red_method, dither=dither, num_colors=3, per_sprite=True)
-    # make a folder to save indiviudal sprites for each image
+    # make a folder to save individual sprites for each image
     sprite_folder = "output_sprites/" + os.path.splitext(image_name)[0]
     if not os.path.exists(sprite_folder):
         os.makedirs(sprite_folder)

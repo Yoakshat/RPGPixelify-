@@ -19,14 +19,6 @@ def reduce_kmeans(img, k=8):
     return quantized, kmeans.cluster_centers_
 
 def kmedoids_custom(X, k, max_iter=100):
-    """
-    Pure NumPy implementation of K-Medoids (PAM).
-    X: (N, 3) array of pixels
-    k: number of clusters
-    Returns:
-        medoid_indices: index of medoid for each cluster
-        labels: assignment of each point
-    """
     N = len(X)
     medoids = np.random.choice(N, k, replace=False)
 
@@ -143,18 +135,6 @@ def steinberg_dithering(palette, image):
     return dithered.astype(np.uint8)
 
 def reduce_colors(img, method="kmeans", dither=True, k=8):
-    """
-    Reduce the color palette of an image using the specified method.
-
-    Inputs:
-    - img: np.ndarray, BGR image (H, W, 3)
-    - method: str, one of "kmeans", "kmedoids", "gmm", "mediancut"
-    - k: int, number of colors
-
-    Returns:
-    - result: np.ndarray, processed image (same shape as input)
-    """
-
     method = method.lower()
 
     if method == "kmeans":
