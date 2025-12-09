@@ -38,14 +38,6 @@ def kmeans_adaptive(img, max_dist=30, k_start=2, k_max=64):
     return quantized, centers
 
 def kmedoids_custom(X, k, max_iter=100):
-    """
-    Pure NumPy implementation of K-Medoids (PAM).
-    X: (N, 3) array of pixels
-    k: number of clusters
-    Returns:
-        medoid_indices: index of medoid for each cluster
-        labels: assignment of each point
-    """
     N = len(X)
     medoids = np.random.choice(N, k, replace=False)
 

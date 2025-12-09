@@ -14,8 +14,6 @@ def magical_pixelize(image_name, method, pixel_size):
 
     # get the original image
     image = cv2.imread("test_images/" + image_name)
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
     out_pixelated = np.zeros_like(image)
 
     for ann in masks:
@@ -70,9 +68,7 @@ def reduce_sprites(image_name, px_method, pixel_size, red_method, dither, num_co
     masks = np.load(mask_path, allow_pickle=True)
 
     # get the original image
-    image = cv2.imread("test_images/" + image_name)
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
+    image = cv2.imread("test_images/" + image_name)  # already BGR
     out_pixelated = np.zeros_like(image)
     reduced_sprites = [] 
 
@@ -80,21 +76,23 @@ def reduce_sprites(image_name, px_method, pixel_size, red_method, dither, num_co
         mask = ann["segmentation"]
         x, y, w, h = ann["bbox"]
 
-        obj_crop = image[y:y+h, x:x+w]
+        obj_crop = image[y:y+h, x:x+w]  # still BGR
         mask_crop = mask[y:y+h, x:x+w]
 
         isolated = np.zeros((h, w, 4), dtype=np.uint8)
         isolated[..., :3] = obj_crop
         isolated[..., 3] = mask_crop.astype(np.uint8) * 255
 
-        px = pixelate(isolated, method=px_method, pixel_size=pixel_size)
-        px = cv2.cvtColor(px, cv2.COLOR_RGB2BGR)
-        px = reduce_colors(px, method=red_method, dither=dither, k=num_colors, max_dist=max_dist)
         alpha = mask_crop.astype(bool)
+        # pixelate first, then reduce colors
+        px = pixelate(isolated, method=px_method, pixel_size=pixel_size)
+        px_bgr = reduce_colors(px[..., :3], method=red_method, dither=dither, k=num_colors, max_dist=max_dist)
 
-        out_pixelated[y:y+h, x:x+w][alpha]  = px[alpha][:, :3]
-        red_sprite = np.zeros((h,w,3))
-        red_sprite[alpha] = px[alpha][:, :3]
+        # apply the mask to the output
+        out_pixelated[y:y+h, x:x+w][alpha] = px_bgr[alpha]
+
+        red_sprite = np.zeros((h, w, 3), dtype=np.uint8)
+        red_sprite[alpha] = px_bgr[alpha]
         reduced_sprites.append(red_sprite)
 
     return out_pixelated, reduced_sprites
@@ -116,9 +114,6 @@ if __name__ == "__main__":
     per_sprite = False
     max_dist = 30
 
-    mode_tag = "sprite" if per_sprite else "full"
-    name_tag = f"{red_method}{num_colors}_{mode_tag}_"
-
     v1, indv_sprites = reduce(image_name, px_method=px_method, pixel_size=8, red_method=red_method, dither=dither, num_colors=num_colors, per_sprite=per_sprite, max_dist=max_dist)
     # make a folder to save indiviudal sprites for each image
     sprite_folder = "output_sprites/" + os.path.splitext(image_name)[0]
@@ -130,7 +125,7 @@ if __name__ == "__main__":
         if sprite.shape[0] >= 80 or sprite.shape[1] >= 80: 
             cv2.imwrite(os.path.join(sprite_folder, f"sprite_{i}.png"), sprite)
 
-    cv2.imwrite("palette/" + name_tag + image_name, v1)
+    cv2.imwrite("pixelated_" + image_name, v1)
 
 
 
