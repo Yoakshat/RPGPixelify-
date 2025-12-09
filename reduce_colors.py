@@ -18,6 +18,25 @@ def reduce_kmeans(img, k=8):
     quantized = centers[labels].reshape(h, w, 3)
     return quantized, kmeans.cluster_centers_
 
+def kmeans_adaptive(img, max_dist=30, k_start=2, k_max=64):
+    h, w = img.shape[:2]
+    pixels = img.reshape(-1, 3).astype(np.float32)
+    k = k_start
+
+    while k <= k_max:
+        kmeans = KMeans(n_clusters=k, n_init="auto").fit(pixels)
+        centers = kmeans.cluster_centers_
+        labels = kmeans.labels_
+        
+        # compute distance to assigned center
+        dists = np.linalg.norm(pixels - centers[labels], axis=1)
+        if np.max(dists) <= max_dist:
+            break
+        k += 1
+
+    quantized = centers[labels].reshape(h, w, 3).astype(np.uint8)
+    return quantized, centers
+
 def kmedoids_custom(X, k, max_iter=100):
     """
     Pure NumPy implementation of K-Medoids (PAM).
@@ -142,7 +161,7 @@ def steinberg_dithering(palette, image):
     dithered = np.clip(dithered, 0, 1) * 255.0
     return dithered.astype(np.uint8)
 
-def reduce_colors(img, method="kmeans", dither=True, k=8):
+def reduce_colors(img, method="kmeans", dither=True, k=8, max_dist=30):
     """
     Reduce the color palette of an image using the specified method.
 
@@ -165,6 +184,8 @@ def reduce_colors(img, method="kmeans", dither=True, k=8):
         result = reduce_gmm(img, k)
     elif method == "mediancut":
         result = reduce_mediancut(img, k)
+    elif method == 'kmeans_adaptive':
+        result = kmeans_adaptive(img, max_dist)
     else:
         raise ValueError(f"Unknown method: {method}")
 
